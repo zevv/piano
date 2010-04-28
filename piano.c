@@ -201,6 +201,10 @@ void update_adsr(volatile struct osc *osc)
 }
 
 
+/*
+ * Ticks timer
+ */
+
 ISR(TIMER0_OVF_vect) __attribute__((interrupt));
 ISR(TIMER0_OVF_vect)
 {
@@ -214,6 +218,11 @@ ISR(TIMER0_OVF_vect)
 }
 
 
+/*
+ * Audio timer, high prio. Mixes current notes and sets PWM output as D/A
+ * converter 
+ */
+
 ISR(TIMER2_OVF_vect)
 {
 	int8_t c = 0;
@@ -225,7 +234,7 @@ ISR(TIMER2_OVF_vect)
 	
 	/* Mix all notes and create audio */
 
-	if(t == 3) {
+	if(t == 2) {
 		t = 0;
 		PORTB |= 1;
 
