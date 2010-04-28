@@ -44,16 +44,17 @@ void note_on(uint8_t note, uint8_t vel);
 
 void audio_init(void)
 {
-	TCCR0A = (1<<COM0A1) | (0<<COM0A0) | (1<<WGM01) | (1<<WGM00);
-	TCCR0B = (1<<CS00);
-	TIMSK0 |= (1<<TOIE0);
+	TCCR1A = (1<<COM1A1) | (0<<COM1A0) | (1<<WGM11) | (1<<WGM10);
+	TCCR1B = (1<<WGM12) | (1<<CS10);
+	TIMSK1 |= (1<<TOIE1);
 	DDRB |= (1<<PB3);
+
 }
 
 
-void audio_set(uint8_t v)
+void audio_set(int16_t v)
 {
-	OCR0A = v + 128;
+	OCR1A = v + 512;
 }
 
 
@@ -214,7 +215,7 @@ ISR(TIMER0_OVF_vect)
 
 		for(i=0; i<NUM_OSCS; i++) {
 			osc = &oscs[i];
-			c = c + osc->adsr.vel * sintab[osc->off >> 8] / (256 * NUM_OSCS); 
+			c = c + osc->adsr.vel * sintab[osc->off >> 8] / 256;
 			osc->off += osc->step;
 		}
 
