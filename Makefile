@@ -22,7 +22,7 @@ OBJCOPY = $(CROSS)objcopy
 SIZE	= $(CROSS)size
 AD	= /opt/avrdude-5.1/bin/avrdude
 
-all: $(ELF) $(FHEX)
+all: $(ELF) $(FHEX) size
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -37,8 +37,8 @@ $(FHEX) $(EHEX): $(ELF)
 
 $(OBJS) $(ELF): Makefile
 
-install program: $(FHEX) $(EHEX) 
-	$(AD) $(ADFLAGS) -y -e -V \
+install: $(FHEX) $(EHEX) 
+	$(AD) $(ADFLAGS) -y -e -V -q -q \
 		-U flash:w:$(FHEX):i \
 		-U eeprom:w:$(EHEX):i 
 
