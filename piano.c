@@ -67,36 +67,6 @@ void audio_set(uint8_t v)
 }
 
 
-void update_adsr(volatile struct osc *osc)
-{
-	volatile struct adsr *adsr = &osc->adsr;;
-	uint8_t vel = adsr->vel;
-
-	switch(adsr->state) {
-		case 0:
-			if((osc->ticks % adsr->a) == 0) vel+=2;
-			if(vel >= 254) adsr->state = 1;
-			break;
-		case 1:
-			if((osc->ticks % adsr->d) == 0) vel-=2;
-			if(vel <= adsr->s) adsr->state = 2;
-			break;
-		case 2:
-			break;
-		case 3:
-			if((osc->ticks % adsr->r) == 0) vel-=2;
-			if(vel <= 1) adsr->state = 4;
-			break;
-		case 4:
-			osc->note = 0;
-			break;
-	}
-
-	adsr->vel = vel;
-
-	osc->ticks ++;
-}
-
 
 
 void note_on(uint8_t note)
@@ -200,6 +170,37 @@ void keys_scan(void)
 }
 
 
+void update_adsr(volatile struct osc *osc)
+{
+	volatile struct adsr *adsr = &osc->adsr;;
+	uint8_t vel = adsr->vel;
+
+	switch(adsr->state) {
+		case 0:
+			if((osc->ticks % adsr->a) == 0) vel+=2;
+			if(vel >= 254) adsr->state = 1;
+			break;
+		case 1:
+			if((osc->ticks % adsr->d) == 0) vel-=2;
+			if(vel <= adsr->s) adsr->state = 2;
+			break;
+		case 2:
+			break;
+		case 3:
+			if((osc->ticks % adsr->r) == 0) vel-=2;
+			if(vel <= 1) adsr->state = 4;
+			break;
+		case 4:
+			osc->note = 0;
+			break;
+	}
+
+	adsr->vel = vel;
+
+	osc->ticks ++;
+}
+
+
 ISR(TIMER0_OVF_vect) __attribute__((interrupt));
 ISR(TIMER0_OVF_vect)
 {
@@ -211,6 +212,7 @@ ISR(TIMER0_OVF_vect)
 	}
 	PORTB &= ~2;
 }
+
 
 ISR(TIMER2_OVF_vect)
 {
@@ -229,7 +231,7 @@ ISR(TIMER2_OVF_vect)
 
 		for(i=0; i<NUM_OSCS; i++) {
 			osc = &oscs[i];
-			c = c + osc->adsr.vel * sintab[osc->off >> 8] / (256 * NUM_OSCS); 
+			if(osc->note) c = c + osc->adsr.vel * sintab[osc->off >> 8] / (256 * NUM_OSCS); 
 			osc->off += osc->step;
 		}
 
