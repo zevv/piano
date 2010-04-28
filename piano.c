@@ -78,6 +78,7 @@ void handle_key(uint8_t key, uint8_t state)
 				break;
 
 			case KEY_RECORD:
+				playing = 0;
 				if(! recording) {
 					ticks = 0;
 					metronome_set(1);
