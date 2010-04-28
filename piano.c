@@ -81,6 +81,7 @@ void handle_key(uint8_t key, uint8_t state)
 				playing = 0;
 				if(! recording) {
 					ticks = 0;
+					if(rec_n > 0) ticks = rec_list[0].ticks;
 					metronome_set(1);
 					recording = 1;
 				} else {
@@ -97,11 +98,19 @@ void handle_key(uint8_t key, uint8_t state)
 				if(! playing) {
 					playing = 1;
 					ticks = 0;
+					if(rec_n > 0) ticks = rec_list[0].ticks;
 				} else {
+					all_off();
 					playing = 0;
 				}
 				break;
-			
+
+			case KEY_STOP:
+				all_off();
+				metronome_set(0);
+				playing = 0;
+				recording = 0;
+				break;
 		}
 	}
 }
@@ -125,16 +134,18 @@ int main(void)
 	for(;;) {
 		keyboard_scan();
 
-		if(pticks != ticks) {
-			pticks = ticks;
-			for(i=0; i<rec_n; i++) {
-				rec = &rec_list[i];
-				if(rec->ticks == ticks) {
-					note = rec->note & 0x7f;
-					if(rec->note & 0x80) {
-						note_on(note);
-					} else {
-						note_off(note);
+		if(playing || recording) {
+			if(pticks != ticks) {
+				pticks = ticks;
+				for(i=0; i<rec_n; i++) {
+					rec = &rec_list[i];
+					if(rec->ticks == ticks) {
+						note = rec->note & 0x7f;
+						if(rec->note & 0x80) {
+							note_on(note);
+						} else {
+							note_off(note);
+						}
 					}
 				}
 			}

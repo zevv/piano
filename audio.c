@@ -79,10 +79,10 @@ void note_on(uint8_t note)
 	osc->step = notetab[note % 12] << (note / 12); 
 	osc->ticks = 0;
 
-	osc->adsr.a = 70;
+	osc->adsr.a = 64;
 	osc->adsr.d = 5;
 	osc->adsr.s = 100;
-	osc->adsr.r = 10;
+	osc->adsr.r = 20;
 	osc->adsr.vel = 0;
 	osc->adsr.state = 0;
 	
@@ -102,6 +102,15 @@ void note_off(uint8_t note)
 		if(osc->note == note) {
 			osc->adsr.state = 3;
 		}
+	}
+}
+
+
+void all_off(void)
+{
+	uint8_t i;
+	for(i=0; i<NUM_OSCS; i++) {
+		oscs[i].note = 0;
 	}
 }
 
@@ -230,7 +239,7 @@ ISR(TIMER2_OVF_vect)
 		}
 
 		c >>= master_vol;
-		OCR2A = c + 128;
+		OCR2A = c + 127;
 		PORTB &= ~1;
 	}
 	
