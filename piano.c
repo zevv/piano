@@ -39,7 +39,7 @@ static uint8_t cur_osc = 0;
 volatile struct osc oscs[NUM_OSCS];
 
 
-void note_on(uint8_t note, uint8_t vel);
+void note_on(uint8_t note);
 
 
 void audio_init(void)
@@ -51,6 +51,13 @@ void audio_init(void)
 	TCCR2B = (1<<CS20);
 	TIMSK2 |= (1<<TOIE2);
 	DDRD |= (1<<PD7);
+
+	/* Timer 0: ticks timer at 1 Khz */
+
+	TCCR0A = 0;
+	TCCR0B = (1<<CS01) | (1<<CS00);
+	TIMSK0 |= (1<<TOIE0);
+
 }
 
 
@@ -60,28 +67,28 @@ void audio_set(uint8_t v)
 }
 
 
-void update_osc(volatile struct osc *osc)
+void update_adsr(volatile struct osc *osc)
 {
 	volatile struct adsr *adsr = &osc->adsr;;
 	uint8_t vel = adsr->vel;
 
 	switch(adsr->state) {
 		case 0:
-			if((osc->ticks % adsr->a) == 0) vel++;
-			if(vel == 255) adsr->state = 1;
+			if((osc->ticks % adsr->a) == 0) vel+=2;
+			if(vel >= 254) adsr->state = 1;
 			break;
 		case 1:
-			if((osc->ticks % adsr->d) == 0) vel--;
-			if(vel == adsr->s) adsr->state = 2;
+			if((osc->ticks % adsr->d) == 0) vel-=2;
+			if(vel <= adsr->s) adsr->state = 2;
 			break;
 		case 2:
 			break;
 		case 3:
-			if((osc->ticks % adsr->r) == 0) vel--;
-			if(vel == 0) adsr->state = 4;
+			if((osc->ticks % adsr->r) == 0) vel-=2;
+			if(vel <= 1) adsr->state = 4;
 			break;
 		case 4:
-			osc->vel = 0;
+			osc->note = 0;
 			break;
 	}
 
@@ -91,15 +98,8 @@ void update_osc(volatile struct osc *osc)
 }
 
 
-void update_oscs(void)
-{
-	static uint8_t i = 0;
-	update_osc(&oscs[i]);
-	i = (i + 1) % NUM_OSCS;
-}
 
-
-void note_on(uint8_t note, uint8_t vel)
+void note_on(uint8_t note)
 {
 	volatile struct osc *osc;
 	uint8_t i;
@@ -108,14 +108,13 @@ void note_on(uint8_t note, uint8_t vel)
 
 	for(i=0; i<NUM_OSCS; i++) {
 		osc = &oscs[i];
-		if(osc->vel == 0) break;
+		if(osc->note == 0) break;
 	}
 
 	osc = &oscs[cur_osc];
 
 	osc->note = note;
 	osc->step = notetab[note % 12] << (note / 12); 
-	osc->vel = vel;
 	osc->ticks = 0;
 
 	osc->adsr.a = 1;
@@ -160,9 +159,9 @@ void handle_key(uint8_t keynum, uint8_t state)
 {
 	uint8_t note;
 
-	note = keynum + 20;
+	note = keynum + 30;
 	if(state) {
-		note_on(note, 255);
+		note_on(note);
 	} else {
 		note_off(note);
 	}
@@ -201,6 +200,18 @@ void keys_scan(void)
 }
 
 
+ISR(TIMER0_OVF_vect) __attribute__((interrupt));
+ISR(TIMER0_OVF_vect)
+{
+	uint8_t i;
+
+	PORTB |=  2;
+	for(i=0; i<NUM_OSCS; i++) {
+		update_adsr(&oscs[i]);
+	}
+	PORTB &= ~2;
+}
+
 ISR(TIMER2_OVF_vect)
 {
 	int8_t c = 0;
@@ -212,7 +223,8 @@ ISR(TIMER2_OVF_vect)
 	
 	/* Mix all notes and create audio */
 
-	if((t % 3) == 0) {
+	if(t == 3) {
+		t = 0;
 		PORTB |= 1;
 
 		for(i=0; i<NUM_OSCS; i++) {
@@ -225,36 +237,18 @@ ISR(TIMER2_OVF_vect)
 		PORTB &= ~1;
 	}
 	
-	/* Update osciallators */
-
-	if((t % 8) == 0) {
-		PORTB |=  2;
-		update_oscs();
-		PORTB &= ~2;
-	}
-
 }
 
 
 
 int main(void)
 {
-	int i;
-	int j;
-
 	DDRB |= 1;
 	DDRB |= 2;
 
 	keys_init();
 	audio_init();
 	sei();
-
-	for(j=0; j<3; j++) {
-		note_on(rand() % 30 + 30, 255);
-		for(i=0; i<rand() % 20; i++) {
-			_delay_ms(10);
-		}
-	}
 
 	for(;;) {
 		keys_scan();
