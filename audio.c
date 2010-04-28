@@ -38,10 +38,10 @@ struct osc {
 static volatile uint8_t master_vol = 0;
 static volatile uint8_t metronome = 0;
 static volatile struct osc oscs[NUM_OSCS];
-static uint8_t ticks = 0;
 static volatile uint16_t bip_off = 0;
 static volatile uint16_t bip_t = 0;
 
+uint16_t ticks = 0;
 
 void audio_init(void)
 {

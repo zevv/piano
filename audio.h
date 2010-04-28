@@ -8,4 +8,6 @@ void bip(void);
 void metronome_set(uint8_t tempo);
 void master_vol_set(uint8_t vol);
 
+extern uint16_t ticks;
+
 #endif
