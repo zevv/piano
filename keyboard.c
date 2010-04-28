@@ -1,26 +1,63 @@
+#include <stdio.h>
+#include <math.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <avr/io.h>
+#include <util/delay.h>
+#include <avr/interrupt.h>
+
+#include "keyboard.h"
+
+extern void handle_key(uint8_t keynum, uint8_t state);
+
+void keyboard_init(void)
+{
+	DDRA = 0x00;
+	PORTA = 0xff;
+
+	PORTC = 0x00;
+	DDRC = 0x00;
+}
 
 
-  E F G H - - - - - - - - - - -
-  
+void keyboard_scan(void)
+{
+	static uint8_t row = 0;
+	int8_t col = 0;
+	uint8_t key_cur;
+	static uint8_t key_prev[8];
+	uint8_t diff;
+	uint8_t keynum;
+	uint8_t bit;
+
+	/* Scan row */
+
+	DDRC = (1<<row);
+	_delay_us(15);
+
+	/* Read columns */
+
+	key_cur = PINA;
+
+	/* Check which keys have changed */
+
+	diff = key_cur ^ key_prev[row];
+	bit = 0x01;
+	for(col=7; col>=0; col--) {
+		if(diff & bit) {
+			keynum = row * 8 + col;
+			handle_key(keynum, (key_cur & bit) ? 0 : 1);
+		}
+		bit <<= 1;
+	}
+
+	key_prev[row] = key_cur;
+	row = (row + 1) % 7;
+}
 
 
-  1 2 3 4 5 6 7 8 A B C D - - -
+/*
+ * End
+ */
 
-
-
-
-
-
-
-   E6    E5    E7    E8       F6    F5    F7    F8
-
-   E1    E2    E3    E4       F1    F2    --    --
-
-   H1    H1    G2    G3       --    --    --    --
-
-
-
-
-
-
-A1 A2 A3 A4 A5 A6 A7 A8 B1 B2 B3 B4 B5 B6 B7 B8 C1 C2 C3 C4 C5 C6 C7 C8 D1 D2 D3 D4 D5 D6 D7 D8 
