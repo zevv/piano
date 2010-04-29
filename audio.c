@@ -14,7 +14,7 @@
 #define NOTETAB_LEN 12
 #define NUM_OSCS 4
 
-int8_t sintab[SINTAB_LEN] = { 0, 3, 6, 9, 12, 16, 19, 22, 25, 28, 31, 34, 37, 40, 43, 46, 49, 52, 54, 57, 60, 63, 66, 68, 71, 73, 76, 78, 81, 83, 86, 88, 90, 92, 94, 96, 98, 100, 102, 104, 106, 108, 109, 111, 112, 114, 115, 116, 118, 119, 120, 121, 122, 123, 123, 124, 125, 125, 126, 126, 126, 127, 127, 127, 127, 127, 127, 127, 126, 126, 125, 125, 124, 124, 123, 122, 121, 120, 119, 118, 117, 116, 114, 113, 112, 110, 108, 107, 105, 103, 101, 99, 97, 95, 93, 91, 89, 87, 84, 82, 80, 77, 75, 72, 69, 67, 64, 61, 59, 56, 53, 50, 47, 44, 41, 39, 36, 32, 29, 26, 23, 20, 17, 14, 11, 8, 5, 2, -2, -5, -8, -11, -14, -17, -20, -23, -26, -29, -32, -36, -39, -41, -44, -47, -50, -53, -56, -59, -61, -64, -67, -69, -72, -75, -77, -80, -82, -84, -87, -89, -91, -93, -95, -97, -99, -101, -103, -105, -107, -108, -110, -112, -113, -114, -116, -117, -118, -119, -120, -121, -122, -123, -124, -124, -125, -125, -126, -126, -127, -127, -127, -127, -127, -127, -127, -126, -126, -126, -125, -125, -124, -123, -123, -122, -121, -120, -119, -118, -116, -115, -114, -112, -111, -109, -108, -106, -104, -102, -100, -98, -96, -94, -92, -90, -88, -86, -83, -81, -78, -76, -73, -71, -68, -66, -63, -60, -57, -54, -52, -49, -46, -43, -40, -37, -34, -31, -28, -25, -22, -19, -16, -12, -9, -6, -3, 0 };
+int16_t sintab[SINTAB_LEN] = { 6, 13, 19, 25, 31, 37, 44, 50, 56, 62, 68, 74, 80, 86, 92, 98, 103, 109, 115, 120, 126, 131, 136, 142, 147, 152, 157, 162, 167, 171, 176, 180, 185, 189, 193, 197, 201, 205, 208, 212, 215, 219, 222, 225, 228, 231, 233, 236, 238, 240, 242, 244, 246, 247, 249, 250, 251, 252, 253, 254, 254, 255, 255, 255, 255, 255, 254, 254, 253, 252, 251, 250, 249, 247, 246, 244, 242, 240, 238, 236, 233, 231, 228, 225, 222, 219, 215, 212, 208, 205, 201, 197, 193, 189, 185, 180, 176, 171, 167, 162, 157, 152, 147, 142, 136, 131, 126, 120, 115, 109, 103, 98, 92, 86, 80, 74, 68, 62, 56, 50, 44, 37, 31, 25, 19, 13, 6, 0, -6, -13, -19, -25, -31, -37, -44, -50, -56, -62, -68, -74, -80, -86, -92, -98, -103, -109, -115, -120, -126, -131, -136, -142, -147, -152, -157, -162, -167, -171, -176, -180, -185, -189, -193, -197, -201, -205, -208, -212, -215, -219, -222, -225, -228, -231, -233, -236, -238, -240, -242, -244, -246, -247, -249, -250, -251, -252, -253, -254, -254, -255, -255, -255, -255, -255, -254, -254, -253, -252, -251, -250, -249, -247, -246, -244, -242, -240, -238, -236, -233, -231, -228, -225, -222, -219, -215, -212, -208, -205, -201, -197, -193, -189, -185, -180, -176, -171, -167, -162, -157, -152, -147, -142, -136, -131, -126, -120, -115, -109, -103, -98, -92, -86, -80, -74, -68, -62, -56, -50, -44, -37, -31, -25, -19, -13, -6, 0 };
 uint8_t notetab[NOTETAB_LEN] = { 130, 138, 146, 155, 164, 174, 184, 195, 207, 220, 233, 246 };
 
 struct adsr {
@@ -33,33 +33,41 @@ struct osc {
 	uint16_t ticks;
 	uint8_t vel;
 	struct adsr adsr;
+
+	uint16_t mstep;
+	uint16_t moff;
 };
 
 
 static volatile uint8_t master_vol = 0;
-static volatile uint8_t metronome = 0;
 static volatile struct osc oscs[NUM_OSCS];
 static volatile uint16_t bip_off = 0;
 static volatile uint16_t bip_t = 0;
+static volatile uint8_t fm_mul;
+static volatile uint8_t fm_mod;
 
 void audio_init(void)
 {
-
-	/* Timer 2: PWM at 62.5 Khz */
-
-	TCCR2A = (1<<COM2A1) | (1<<WGM21) | (1<<WGM20);
-	TCCR2B = (1<<CS20);
-	TIMSK2 |= (1<<TOIE2);
-	DDRD |= (1<<PD7);
-
 	/* Timer 0: ticks timer at 1 Khz */
 
 	TCCR0A = 0;
 	TCCR0B = (1<<CS01) | (1<<CS00);
 	TIMSK0 |= (1<<TOIE0);
 
+	/* Timer 1: Fast PWM 10 bit */
+
+	TCCR1A = (1<<COM1A1) | (1<<WGM11) | (0<<WGM10);
+	TCCR1B = (1<<CS10) | (1<<WGM12);
+	DDRD |= (1<<PD5);
+	TIMSK1 |= (1<<TOIE1);
 }
 
+
+void osc_set_fm(uint8_t mul, uint8_t mod)
+{
+	fm_mul = mul;
+	fm_mod = mod;
+}
 
 void note_on(uint8_t note)
 {
@@ -75,16 +83,16 @@ void note_on(uint8_t note)
 
 
 	osc->note = note;
-	osc->step = notetab[note % 12] << (note / 12); 
+	osc->step = notetab[note % 12] << (note / 12);
+	osc->mstep = osc->step * fm_mul / 4;
 	osc->ticks = 0;
 
 	osc->adsr.a = 64;
 	osc->adsr.d = 5;
-	osc->adsr.s = 100;
+	osc->adsr.s = 50;
 	osc->adsr.r = 20;
 	osc->adsr.vel = 0;
 	osc->adsr.state = 0;
-	
 	
 }
 
@@ -122,8 +130,8 @@ static void update_adsr(volatile struct osc *osc)
 	switch(adsr->state) {
 		case 0:
 			vel = vel + adsr->a;
-			if(vel >= 255) {
-				vel = 255;
+			if(vel >= 127) {
+				vel = 127;
 				adsr->state = 1;
 			}
 			break;
@@ -163,12 +171,6 @@ void bip(uint8_t duration)
 
 
 
-void metronome_set(uint8_t tempo)
-{
-	metronome = tempo;
-}
-
-
 void master_vol_set(uint8_t vol)
 {
 	master_vol = vol;
@@ -203,40 +205,43 @@ ISR(TIMER0_OVF_vect)
  * converter value
  */
 
-ISR(TIMER2_OVF_vect)
+ISR(TIMER1_OVF_vect)
 {
-	int8_t c = 0;
-	static uint8_t t = 0;
+	int16_t c = 0;
 	volatile struct osc *osc;
 	uint8_t i;
+	static uint8_t t = 0;
+	uint8_t off;
 
-	t++;
-	
+	if(t++ != 1) return;
+	t = 0;
+
 	/* Mix all notes and create audio */
 
-	if(t == 3) {
-		t = 0;
-		PORTB |= 1;
+	PORTB |= 1;
 
-		for(i=0; i<NUM_OSCS; i++) {
-			osc = &oscs[i];
-			if(osc->note) c = c + osc->adsr.vel * sintab[osc->off >> 8] / (256 * NUM_OSCS); 
-			osc->off += osc->step;
-		}
+	for(i=0; i<NUM_OSCS; i++) {
+		osc = &oscs[i];
 
-		if(bip_t) {
-			c = c + sintab[bip_off >> 8] / 8;
-			bip_off += 10000;
-			bip_t --;
-		}
-
-		c >>= master_vol;
-		OCR2A = c + 127;
-		PORTB &= ~1;
-
-		seq_tick();
+		off = (osc->off >> 8) + (sintab[osc->moff >> 8] >> (7-fm_mod));
+		if(osc->note) c = c + osc->adsr.vel * sintab[off] / (128 * NUM_OSCS); 
+		osc->off += osc->step;
+		osc->moff += osc->mstep;
 	}
+
+	if(bip_t) {
+		c = c + sintab[bip_off >> 8] / 8;
+		bip_off += 10000;
+		bip_t --;
+	}
+
+	c >>= master_vol;
+	c += 256;
+	OCR1A = c;
+
+	seq_tick();
 	
+	PORTB &= ~1;
 }
 
 

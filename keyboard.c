@@ -34,7 +34,8 @@ void keyboard_scan(void)
 	/* Scan row */
 
 	DDRC = (1<<row);
-	_delay_us(15);
+	PORTC = ~(1<<row);
+	_delay_us(40);
 
 	/* Read columns */
 
@@ -54,6 +55,8 @@ void keyboard_scan(void)
 
 	key_prev[row] = key_cur;
 	row = (row + 1) % 7;
+
+	_delay_us(10);
 }
 
 

@@ -13,6 +13,8 @@
 
 static uint8_t master_vol = 0;
 static int8_t oct = 0;
+static uint8_t fm_mul = 4;
+static uint8_t fm_mod = 3;
 
 void handle_key(uint8_t key, uint8_t state)
 {
@@ -32,13 +34,9 @@ void handle_key(uint8_t key, uint8_t state)
 
 	if(state) {
 
-		bip(10);
+		bip(3);
 
 		switch(key) {
-
-			case KEY_CLARINET:
-				metronome_set(1);
-				break;
 
 			case KEY_MIN:
 				if(master_vol < 7) master_vol++;
@@ -110,8 +108,19 @@ void handle_key(uint8_t key, uint8_t state)
 			case KEY_MEASURES:
 				seq_cmd(SEQ_CMD_MEASURES);
 				break;
+
+			case KEY_CLARINET:
+				fm_mul = fm_mul + 1;
+				if(fm_mul == 8) fm_mul = 1;
+				break;
+			
+			case KEY_ELECTRIC_GUITAR:
+				fm_mod = (fm_mod + 1) % 7;
+				break;
 		}
 	}
+				
+	osc_set_fm(fm_mul, fm_mod);
 }
 
 
@@ -125,6 +134,8 @@ int main(void)
 	audio_init();
 	seq_init();
 	sei();
+	
+	osc_set_fm(fm_mul, fm_mod);
 				
 	for(;;) {
 		keyboard_scan();

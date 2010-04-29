@@ -25,7 +25,7 @@ struct seq {
 
 volatile enum seq_state seq_state;
 volatile uint16_t seq_ticks;
-volatile uint8_t seq_tempo = 140;
+volatile uint8_t seq_tempo = 100;
 volatile uint8_t seq_metro = 0;
 volatile uint8_t seq_measures = 4;
 

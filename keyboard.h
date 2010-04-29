@@ -45,7 +45,6 @@ enum key {
 #define KEY_MEASURES KEY_LATIN
 #define KEY_METRONOME KEY_16BEAT
 
-
 void keyboard_init(void);
 void keyboard_scan(void);
 
