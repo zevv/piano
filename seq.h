@@ -4,6 +4,7 @@
 
 enum seq_cmd {
 	SEQ_CMD_CLEAR,
+	SEQ_CMD_DEL,
 	SEQ_CMD_FIRST,
 	SEQ_CMD_LAST,
 	SEQ_CMD_PREV,
@@ -13,6 +14,8 @@ enum seq_cmd {
 	SEQ_CMD_STOP,
 	SEQ_CMD_TEMPO_UP,
 	SEQ_CMD_TEMPO_DOWN,
+	SEQ_CMD_METRONOME,
+	SEQ_CMD_MEASURES,
 };
 
 void seq_init(void);

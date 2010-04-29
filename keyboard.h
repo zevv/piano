@@ -36,9 +36,15 @@ enum key {
 #define KEY_PREV KEY_PIANO
 #define KEY_NEXT KEY_BANJO
 #define KEY_LAST KEY_HARPISCORD
+#define KEY_DEL KEY_VIOLIN
+#define KEY_CLEAR KEY_OBOE
 
 #define KEY_TEMPO_UP KEY_DISCO
 #define KEY_TEMPO_DOWN KEY_SLOW_ROCK
+
+#define KEY_MEASURES KEY_LATIN
+#define KEY_METRONOME KEY_16BEAT
+
 
 void keyboard_init(void);
 void keyboard_scan(void);

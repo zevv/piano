@@ -62,7 +62,7 @@ void handle_key(uint8_t key, uint8_t state)
 				seq_cmd(SEQ_CMD_REC);
 				break;
 			
-			case KEY_PLAY:
+			case KEY_START:
 				seq_cmd(SEQ_CMD_PLAY);
 				break;
 
@@ -82,17 +82,33 @@ void handle_key(uint8_t key, uint8_t state)
 			case KEY_NEXT:
 				seq_cmd(SEQ_CMD_NEXT);
 				break;
+			
+			case KEY_CLEAR:
+				seq_cmd(SEQ_CMD_CLEAR);
+				break;
+			
+			case KEY_DEL:
+				seq_cmd(SEQ_CMD_DEL);
+				break;
 
 			case KEY_LAST:
 				seq_cmd(SEQ_CMD_LAST);
 				break;
 
-			case KEY_TEMPO_UP:
+			case KEY_SLOW:
+				seq_cmd(SEQ_CMD_TEMPO_DOWN);
+				break;
+
+			case KEY_FAST:
 				seq_cmd(SEQ_CMD_TEMPO_UP);
 				break;
 
-			case KEY_TEMPO_DOWN:
-				seq_cmd(SEQ_CMD_TEMPO_DOWN);
+			case KEY_METRONOME:
+				seq_cmd(SEQ_CMD_METRONOME);
+				break;
+			
+			case KEY_MEASURES:
+				seq_cmd(SEQ_CMD_MEASURES);
 				break;
 		}
 	}
