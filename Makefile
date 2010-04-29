@@ -1,7 +1,7 @@
 
 NAME	= piano
 
-SRC	= piano.c audio.c keyboard.c
+SRC	= piano.c audio.c keyboard.c seq.c
 
 #############################################################################
 

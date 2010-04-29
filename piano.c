@@ -9,49 +9,30 @@
 
 #include "keyboard.h"
 #include "audio.h"
-
-
-struct rec {
-	int16_t ticks;
-	uint8_t note;
-};
-
-struct rec rec_list[200];
-uint8_t rec_n = 0;
+#include "seq.h"
 
 static uint8_t master_vol = 0;
 static int8_t oct = 0;
-static uint8_t recording = 0;
-static uint8_t playing = 0;
 
 void handle_key(uint8_t key, uint8_t state)
 {
 	uint8_t note;
 
+	/* Notes */
+
 	if(key < 32) {
 		
 		note = key + 30 + oct*12;
-
-		if(recording) {
-			struct rec *rec = &rec_list[rec_n];
-			rec->ticks = ticks;
-			rec->note = note;
-			if(state) rec->note |= 0x80;
-			rec_n ++;
-		}
-
-		if(state) {
-			note_on(note);
-		} else {
-			note_off(note);
-		}
+		(state ? note_on : note_off)(note);
+		seq_note(note, state);
 		return;
 	}
 
+	/* Control keys */
 
 	if(state) {
 
-		bip();
+		bip(10);
 
 		switch(key) {
 
@@ -78,38 +59,40 @@ void handle_key(uint8_t key, uint8_t state)
 				break;
 
 			case KEY_RECORD:
-				playing = 0;
-				if(! recording) {
-					ticks = 0;
-					if(rec_n > 0) ticks = rec_list[0].ticks;
-					metronome_set(1);
-					recording = 1;
-				} else {
-					metronome_set(0);
-					recording = 0;
-				}
+				seq_cmd(SEQ_CMD_REC);
 				break;
 			
 			case KEY_PLAY:
-				if(recording) {
-					metronome_set(0);
-					recording = 0;
-				}
-				if(! playing) {
-					playing = 1;
-					ticks = 0;
-					if(rec_n > 0) ticks = rec_list[0].ticks;
-				} else {
-					all_off();
-					playing = 0;
-				}
+				seq_cmd(SEQ_CMD_PLAY);
 				break;
 
 			case KEY_STOP:
+				seq_cmd(SEQ_CMD_STOP);
 				all_off();
-				metronome_set(0);
-				playing = 0;
-				recording = 0;
+				break;
+
+			case KEY_FIRST:
+				seq_cmd(SEQ_CMD_FIRST);
+				break;
+			
+			case KEY_PREV:
+				seq_cmd(SEQ_CMD_PREV);
+				break;
+			
+			case KEY_NEXT:
+				seq_cmd(SEQ_CMD_NEXT);
+				break;
+
+			case KEY_LAST:
+				seq_cmd(SEQ_CMD_LAST);
+				break;
+
+			case KEY_TEMPO_UP:
+				seq_cmd(SEQ_CMD_TEMPO_UP);
+				break;
+
+			case KEY_TEMPO_DOWN:
+				seq_cmd(SEQ_CMD_TEMPO_DOWN);
 				break;
 		}
 	}
@@ -122,43 +105,20 @@ int main(void)
 	DDRB |= 1;
 	DDRB |= 2;
 
-	uint16_t pticks = 0;
-	uint16_t i;
-	uint8_t note;
-	struct rec *rec;
-
 	keyboard_init();
 	audio_init();
+	seq_init();
 	sei();
-
+				
 	for(;;) {
 		keyboard_scan();
-
-		if(playing || recording) {
-			if(pticks != ticks) {
-				pticks = ticks;
-				for(i=0; i<rec_n; i++) {
-					rec = &rec_list[i];
-					if(rec->ticks == ticks) {
-						note = rec->note & 0x7f;
-						if(rec->note & 0x80) {
-							note_on(note);
-						} else {
-							note_off(note);
-						}
-					}
-				}
-			}
-		}
 	}
 
 	return 0;
 }
 
 
-
-
-
-
-
+/*
+ * End
+ */
 

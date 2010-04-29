@@ -8,6 +8,7 @@
 #include <avr/interrupt.h>
 
 #include "audio.h"
+#include "seq.h"
 
 #define SINTAB_LEN 256
 #define NOTETAB_LEN 12
@@ -40,8 +41,6 @@ static volatile uint8_t metronome = 0;
 static volatile struct osc oscs[NUM_OSCS];
 static volatile uint16_t bip_off = 0;
 static volatile uint16_t bip_t = 0;
-
-uint16_t ticks = 0;
 
 void audio_init(void)
 {
@@ -157,9 +156,9 @@ static void update_adsr(volatile struct osc *osc)
 }
 
 
-void bip(void)
+void bip(uint8_t duration)
 {
-	bip_t = 1000;
+	bip_t = duration * 100;
 }
 
 
@@ -177,7 +176,7 @@ void master_vol_set(uint8_t vol)
 
 
 /*
- * Ticks timer
+ * Oscillator / ADSR update timer
  */
 
 ISR(TIMER0_OVF_vect) __attribute__((interrupt));
@@ -193,7 +192,6 @@ ISR(TIMER0_OVF_vect)
 		for(i=0; i<NUM_OSCS; i++) {
 			update_adsr(&oscs[i]);
 		}
-		ticks ++;
 		PORTB &= ~2;
 	}
 }
@@ -227,20 +225,16 @@ ISR(TIMER2_OVF_vect)
 		}
 
 		if(bip_t) {
-			c = c + sintab[bip_off >> 8] / 32;
+			c = c + sintab[bip_off >> 8] / 8;
 			bip_off += 10000;
 			bip_t --;
-		}
-
-
-		if(metronome) {
-			if((ticks % 32)== 0) c += 16;
-			if((ticks % 128)== 0) c += 32;
 		}
 
 		c >>= master_vol;
 		OCR2A = c + 127;
 		PORTB &= ~1;
+
+		seq_tick();
 	}
 	
 }

@@ -32,6 +32,14 @@ enum key {
 #define KEY_OCT_UP KEY_POPS
 #define KEY_OCT_DOWN KEY_SWING
 
+#define KEY_FIRST KEY_XYLOPHONE
+#define KEY_PREV KEY_PIANO
+#define KEY_NEXT KEY_BANJO
+#define KEY_LAST KEY_HARPISCORD
+
+#define KEY_TEMPO_UP KEY_DISCO
+#define KEY_TEMPO_DOWN KEY_SLOW_ROCK
+
 void keyboard_init(void);
 void keyboard_scan(void);
 
