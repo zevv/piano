@@ -84,7 +84,7 @@ void note_on(uint8_t note)
 
 	osc->note = note;
 	osc->step = notetab[note % 12] << (note / 12);
-	osc->mstep = osc->step * fm_mul / 4;
+	osc->mstep = osc->step * fm_mul / 2;
 	osc->ticks = 0;
 
 	osc->adsr.a = 64;

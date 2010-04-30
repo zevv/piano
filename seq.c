@@ -21,7 +21,6 @@ struct seq {
 };
 
 
-#define SEQ_NOTES 200
 
 volatile enum seq_state seq_state;
 volatile uint16_t seq_ticks;
@@ -29,7 +28,11 @@ volatile uint8_t seq_tempo = 100;
 volatile uint8_t seq_metro = 0;
 volatile uint8_t seq_measures = 4;
 
-volatile struct seq seq_list[SEQ_NOTES];
+volatile struct seq seq_list[] = {
+	#include "bach.c"
+};
+
+#define SEQ_NOTES (sizeof seq_list / sizeof seq_list[0])
 
 volatile struct seq *seq_play;	/* Current play pointer */
 volatile struct seq *seq_rec;	/* Current rec pointer */
@@ -58,7 +61,7 @@ void seq_init(void)
 {
 	seq_play = seq_list;
 	seq_rec = seq_list;
-	seq_last = seq_list;
+	seq_last = seq_list + SEQ_NOTES;
 	seq_ticks = 0;
 	seq_state = SEQ_STATE_IDLE;
 }
@@ -204,8 +207,8 @@ void seq_tick(void)
 		t = seq_tempo;
 
 		if(seq_metro || seq_state == SEQ_STATE_REC) {
-			if((seq_ticks % 64) == 0) bip(5);
-			if((seq_ticks % (64*seq_measures)) == 0) bip(25);
+			if((seq_ticks % 60) == 0) bip(5);
+			if((seq_ticks % (60*seq_measures)) == 0) bip(25);
 		}
 
 		if(seq_state != SEQ_STATE_IDLE) {
