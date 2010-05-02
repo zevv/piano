@@ -44,16 +44,16 @@ struct adsr {
 };
 
 struct osc {
-	uint8_t note;
-	uint16_t off;
-	uint16_t step;
-	uint16_t ticks;
-	uint8_t vel;
-	struct adsr adsr;
+	uint8_t note;		/* Note number */
+	uint16_t ticks;		/* Note clock ticks */
 
-	uint16_t mstep;
-	uint16_t moff;
-	struct adsr madsr;
+	uint16_t off;		/* Osc offset in sin table */
+	uint16_t step;		/* Osc step size */
+	struct adsr adsr;	/* Velocity ADSR */
+
+	uint16_t moff;		/* Modulator osc offset in sin table */
+	uint16_t mstep;		/* Modulator osc step size */
+	struct adsr madsr;	/* Modulator ADSR */
 };
 
 
@@ -87,6 +87,7 @@ void osc_set_fm(uint8_t mul, uint8_t mod)
 	fm_mod = 7 - mod;
 }
 
+
 void note_on(uint8_t note)
 {
 	volatile struct osc *osc;
@@ -113,7 +114,7 @@ void note_on(uint8_t note)
 	osc->adsr.state = 0;
 
 	osc->madsr.a = 64;
-	osc->madsr.d = 3;
+	osc->madsr.d = 2;
 	osc->madsr.s = 5;
 	osc->madsr.r = 5;
 	osc->madsr.vel = 0;
@@ -126,8 +127,6 @@ void note_off(uint8_t note)
 {
 	volatile struct osc *osc;
 	uint8_t i;
-
-	/* Find free osc, or use oldest */
 
 	for(i=0; i<NUM_OSCS; i++) {
 		osc = &oscs[i];
@@ -250,7 +249,7 @@ ISR(TIMER1_OVF_vect)
 		int16_t m;
 
 		m = sintab[osc->moff >> 8];
-		m = m * osc->madsr.vel / 64;
+		m = m * osc->madsr.vel / 16;
 		m >>= fm_mod;
 		off = (osc->off >> 8) + m;
 		if(osc->note) c = c + osc->adsr.vel * sintab[off] / (64 * NUM_OSCS); 
