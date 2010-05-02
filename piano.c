@@ -24,7 +24,7 @@ void handle_key(uint8_t key, uint8_t state)
 
 	if(key < 32) {
 		
-		note = key + 30 + oct*12;
+		note = key + 24 + oct*12;
 		(state ? note_on : note_off)(note);
 		seq_note(note, state);
 		return;

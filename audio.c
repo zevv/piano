@@ -9,13 +9,30 @@
 
 #include "audio.h"
 #include "seq.h"
+#include "sintab.h"
 
 #define SINTAB_LEN 256
 #define NOTETAB_LEN 12
 #define NUM_OSCS 4
 
-int16_t sintab[SINTAB_LEN] = { 6, 13, 19, 25, 31, 37, 44, 50, 56, 62, 68, 74, 80, 86, 92, 98, 103, 109, 115, 120, 126, 131, 136, 142, 147, 152, 157, 162, 167, 171, 176, 180, 185, 189, 193, 197, 201, 205, 208, 212, 215, 219, 222, 225, 228, 231, 233, 236, 238, 240, 242, 244, 246, 247, 249, 250, 251, 252, 253, 254, 254, 255, 255, 255, 255, 255, 254, 254, 253, 252, 251, 250, 249, 247, 246, 244, 242, 240, 238, 236, 233, 231, 228, 225, 222, 219, 215, 212, 208, 205, 201, 197, 193, 189, 185, 180, 176, 171, 167, 162, 157, 152, 147, 142, 136, 131, 126, 120, 115, 109, 103, 98, 92, 86, 80, 74, 68, 62, 56, 50, 44, 37, 31, 25, 19, 13, 6, 0, -6, -13, -19, -25, -31, -37, -44, -50, -56, -62, -68, -74, -80, -86, -92, -98, -103, -109, -115, -120, -126, -131, -136, -142, -147, -152, -157, -162, -167, -171, -176, -180, -185, -189, -193, -197, -201, -205, -208, -212, -215, -219, -222, -225, -228, -231, -233, -236, -238, -240, -242, -244, -246, -247, -249, -250, -251, -252, -253, -254, -254, -255, -255, -255, -255, -255, -254, -254, -253, -252, -251, -250, -249, -247, -246, -244, -242, -240, -238, -236, -233, -231, -228, -225, -222, -219, -215, -212, -208, -205, -201, -197, -193, -189, -185, -180, -176, -171, -167, -162, -157, -152, -147, -142, -136, -131, -126, -120, -115, -109, -103, -98, -92, -86, -80, -74, -68, -62, -56, -50, -44, -37, -31, -25, -19, -13, -6, 0 };
-uint8_t notetab[NOTETAB_LEN] = { 130, 138, 146, 155, 164, 174, 184, 195, 207, 220, 233, 246 };
+#define SRATE (F_CPU / 512.0 / 2)
+#define F_NOTE0 43.653 // Lowest note we can play is F2
+#define STEP_NOTE0 (F_NOTE0 * (256.0 * 256.0) / SRATE)
+
+uint16_t notetab[NOTETAB_LEN] = { 
+	1.0000 * STEP_NOTE0,
+	1.0594 * STEP_NOTE0,
+	1.1224 * STEP_NOTE0,
+	1.1892 * STEP_NOTE0,
+	1.2599 * STEP_NOTE0,
+	1.3348 * STEP_NOTE0,
+	1.4142 * STEP_NOTE0,
+	1.4983 * STEP_NOTE0,
+	1.5874 * STEP_NOTE0,
+	1.6817 * STEP_NOTE0,
+	1.7817 * STEP_NOTE0,
+	1.8877 * STEP_NOTE0,
+};
 
 struct adsr {
 	uint8_t a;
@@ -36,6 +53,7 @@ struct osc {
 
 	uint16_t mstep;
 	uint16_t moff;
+	struct adsr madsr;
 };
 
 
@@ -66,7 +84,7 @@ void audio_init(void)
 void osc_set_fm(uint8_t mul, uint8_t mod)
 {
 	fm_mul = mul;
-	fm_mod = mod;
+	fm_mod = 7 - mod;
 }
 
 void note_on(uint8_t note)
@@ -93,6 +111,13 @@ void note_on(uint8_t note)
 	osc->adsr.r = 20;
 	osc->adsr.vel = 0;
 	osc->adsr.state = 0;
+
+	osc->madsr.a = 64;
+	osc->madsr.d = 3;
+	osc->madsr.s = 5;
+	osc->madsr.r = 5;
+	osc->madsr.vel = 0;
+	osc->madsr.state = 0;
 	
 }
 
@@ -122,9 +147,8 @@ void all_off(void)
 }
 
 
-static void update_adsr(volatile struct osc *osc)
+static void update_adsr(volatile struct adsr *adsr)
 {
-	volatile struct adsr *adsr = &osc->adsr;;
 	int16_t vel = adsr->vel;
 
 	switch(adsr->state) {
@@ -150,17 +174,12 @@ static void update_adsr(volatile struct osc *osc)
 				vel = 0;
 				adsr->state = 4;
 			}
-			if((osc->ticks % adsr->r) == 0) vel-=2;
-			if(vel <= 1) adsr->state = 4;
 			break;
 		case 4:
-			osc->note = 0;
 			break;
 	}
 
 	adsr->vel = vel;
-
-	osc->ticks ++;
 }
 
 
@@ -186,13 +205,18 @@ ISR(TIMER0_OVF_vect)
 {
 	uint8_t i;
 	static uint8_t t = 0;
+	volatile struct osc *osc;
 
 	if(t++ == 10) {
 		t = 0;
 
 		PORTB |=  2;
 		for(i=0; i<NUM_OSCS; i++) {
-			update_adsr(&oscs[i]);
+			osc = &oscs[i];
+			update_adsr(&osc->adsr);
+			update_adsr(&osc->madsr);
+			osc->ticks ++;
+			if(osc->adsr.state == 4) osc->note = 0;
 		}
 		PORTB &= ~2;
 	}
@@ -223,8 +247,13 @@ ISR(TIMER1_OVF_vect)
 	for(i=0; i<NUM_OSCS; i++) {
 		osc = &oscs[i];
 
-		off = (osc->off >> 8) + (sintab[osc->moff >> 8] >> (7-fm_mod));
-		if(osc->note) c = c + osc->adsr.vel * sintab[off] / (128 * NUM_OSCS); 
+		int16_t m;
+
+		m = sintab[osc->moff >> 8];
+		m = m * osc->madsr.vel / 64;
+		m >>= fm_mod;
+		off = (osc->off >> 8) + m;
+		if(osc->note) c = c + osc->adsr.vel * sintab[off] / (64 * NUM_OSCS); 
 		osc->off += osc->step;
 		osc->moff += osc->mstep;
 	}
