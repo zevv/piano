@@ -18,7 +18,7 @@ enum key {
 	KEY_SWING,
 	KEY_SLOW_ROCK,
 	KEY_MARCH,
-	KEY_WALZ,
+	KEY_WALTZ,
 	KEY_MIN,
 	KEY_MAX,
 	KEY_SLOW,
@@ -41,6 +41,10 @@ enum key {
 
 #define KEY_MEASURES KEY_LATIN
 #define KEY_METRONOME KEY_16BEAT
+
+#define KEY_FM_MUL KEY_SLOW_ROCK
+#define KEY_FM_MOD KEY_MARCH
+#define KEY_OSCTYPE KEY_WALTZ 
 
 void keyboard_init(void);
 void keyboard_scan(void);

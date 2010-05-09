@@ -16,9 +16,11 @@
 #define NOTETAB_LEN 12
 #define NUM_OSCS 4
 
+/* F1 (43) .. G7 (1975) */
+
 #define SRATE (F_CPU / 512.0 / 2)
-#define F_NOTE0 43.653 // Lowest note we can play is F2
-#define STEP_NOTE0 (F_NOTE0 * (256.0 * 256.0) / SRATE)
+#define F_NOTE0 43.653 	// Lowest note we can play is F1 at 43.653 Hz
+#define STEP_NOTE0 (F_NOTE0 * 256.0 * 256.0 / SRATE)
 
 
 enum osc_type {
@@ -53,6 +55,7 @@ PROGMEM
 
 #include "instr-piano.c"
 
+
 struct adsr {
 	uint8_t a;
 	uint8_t d;
@@ -81,8 +84,8 @@ struct osc {
 
 	uint32_t woff;
 	uint16_t wstep;
-	uint32_t loop_a;
-	uint32_t loop_b;
+	uint32_t loop_end;
+	uint32_t loop_rev;
 	uint8_t wvel;
 	void *sample;
 };
@@ -94,6 +97,7 @@ static volatile uint16_t bip_off = 0;
 static volatile uint16_t bip_t = 0;
 static volatile uint8_t fm_mul;
 static volatile uint8_t fm_mod;
+static volatile uint8_t cur_instr = 0;
 
 void audio_init(void)
 {
@@ -109,6 +113,12 @@ void audio_init(void)
 	TCCR1B = (1<<CS10) | (1<<WGM12);
 	DDRD |= (1<<PD5);
 	TIMSK1 |= (1<<TOIE1);
+}
+
+
+void set_instr(uint8_t instr)
+{
+	cur_instr = instr;
 }
 
 
@@ -132,7 +142,7 @@ void note_on(uint8_t note)
 	}
 
 
-	osc->type = OSC_TYPE_WAVE;
+	osc->type = (cur_instr == 0) ? OSC_TYPE_FM : OSC_TYPE_WAVE;
 	osc->note = note;
 	osc->ticks = 0;
 
@@ -157,14 +167,14 @@ void note_on(uint8_t note)
 
 	/* Wave table */
 
-	note -= 24;
+	note -= 30;
 
 	osc->woff = 0;
 	osc->wstep = notetab[note % 12] << (note / 12);
 	osc->wvel = 127;
 	osc->sample = &instr.sample;
-	osc->loop_a = pgm_read_dword(&instr.loop_a) * 256;
-	osc->loop_b = pgm_read_dword(&instr.loop_b) * 256;
+	osc->loop_end = pgm_read_dword(&instr.loop_b) * 256;
+	osc->loop_rev = osc->loop_end - pgm_read_dword(&instr.loop_a) * 256;
 }
 
 
@@ -321,7 +331,7 @@ ISR(TIMER1_OVF_vect)
 
 			c = c + osc->wvel * pgm_read_byte(osc->sample + osc->woff / 256) / ( 128 * NUM_OSCS);
 			osc->woff = osc->woff + osc->wstep;
-			if(osc->woff >= osc->loop_b) osc->woff = osc->loop_a;
+			if(osc->woff >= osc->loop_end) osc->woff -= osc->loop_rev;
 		}
 	}
 

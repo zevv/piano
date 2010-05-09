@@ -2,6 +2,7 @@
 #define audio_h
 
 void audio_init(void);
+void set_instr(uint8_t instr);
 void osc_set_fm(uint8_t mul, uint8_t vel);
 void note_on(uint8_t note);
 void note_off(uint8_t note);

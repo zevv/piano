@@ -15,6 +15,7 @@ static uint8_t master_vol = 0;
 static int8_t oct = 0;
 static uint8_t fm_mul = 4;
 static uint8_t fm_mod = 3;
+static uint8_t instr = 0;
 
 void handle_key(uint8_t key, uint8_t state)
 {
@@ -109,12 +110,17 @@ void handle_key(uint8_t key, uint8_t state)
 				seq_cmd(SEQ_CMD_MEASURES);
 				break;
 
-			case KEY_CLARINET:
+			case KEY_OSCTYPE:
+				instr = 1-instr;
+				set_instr(instr);
+				break;
+
+			case KEY_FM_MUL:
 				fm_mul = fm_mul + 1;
 				if(fm_mul == 8) fm_mul = 1;
 				break;
 			
-			case KEY_ELECTRIC_GUITAR:
+			case KEY_FM_MOD:
 				fm_mod = (fm_mod + 1) % 7;
 				break;
 		}
