@@ -239,7 +239,7 @@ void seq_tick(void)
 	if(t-- == 0) {
 		t = seq_tempo;
 
-		if(seq_metro || seq_state == SEQ_STATE_REC) {
+		if(seq_metro) {
 			if((seq_ticks % 60) == 0) bip(5);
 			if((seq_ticks % (60*seq_measures)) == 0) bip(25);
 		}
