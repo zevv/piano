@@ -23,11 +23,6 @@
 #define STEP_NOTE0 (F_NOTE0 * 256.0 * 256.0 / SRATE)
 
 
-enum osc_type {
-	OSC_TYPE_FM,
-	OSC_TYPE_WAVE
-};
-
 uint16_t notetab[NOTETAB_LEN] = { 
 	1.0000 * STEP_NOTE0,
 	1.0594 * STEP_NOTE0,
@@ -43,19 +38,6 @@ uint16_t notetab[NOTETAB_LEN] = {
 	1.8877 * STEP_NOTE0,
 };
 
-struct instr {
-	uint32_t size;
-	uint32_t loop_a;
-	uint32_t loop_b;
-	int8_t sample[];
-};
-
-
-PROGMEM 
-
-#include "instr-piano.c"
-
-
 struct adsr {
 	uint8_t a;
 	uint8_t d;
@@ -66,7 +48,6 @@ struct adsr {
 };
 
 struct osc {
-	enum osc_type type;	/* Osc type */
 	uint8_t note;		/* Note number */
 	uint16_t ticks;		/* Note clock ticks */
 
@@ -97,7 +78,6 @@ static volatile uint16_t bip_off = 0;
 static volatile uint16_t bip_t = 0;
 static volatile uint8_t fm_mul;
 static volatile uint8_t fm_mod;
-static volatile uint8_t cur_instr = 0;
 
 void audio_init(void)
 {
@@ -113,12 +93,6 @@ void audio_init(void)
 	TCCR1B = (1<<CS10) | (1<<WGM12);
 	DDRD |= (1<<PD5);
 	TIMSK1 |= (1<<TOIE1);
-}
-
-
-void set_instr(uint8_t instr)
-{
-	cur_instr = instr;
 }
 
 
@@ -142,7 +116,6 @@ void note_on(uint8_t note)
 	}
 
 
-	osc->type = (cur_instr == 0) ? OSC_TYPE_FM : OSC_TYPE_WAVE;
 	osc->note = note;
 	osc->ticks = 0;
 
@@ -164,17 +137,6 @@ void note_on(uint8_t note)
 	osc->madsr.r = 5;
 	osc->madsr.vel = 0;
 	osc->madsr.state = 0;
-
-	/* Wave table */
-
-	note -= 30;
-
-	osc->woff = 0;
-	osc->wstep = notetab[note % 12] << (note / 12);
-	osc->wvel = 127;
-	osc->sample = &instr.sample;
-	osc->loop_end = pgm_read_dword(&instr.loop_b) * 256;
-	osc->loop_rev = osc->loop_end - pgm_read_dword(&instr.loop_a) * 256;
 }
 
 
@@ -269,17 +231,10 @@ ISR(TIMER0_OVF_vect)
 		for(i=0; i<NUM_OSCS; i++) {
 			osc = &oscs[i];
 
-			if(osc->type == OSC_TYPE_FM) {
-				update_adsr(&osc->adsr);
-				update_adsr(&osc->madsr);
-				osc->ticks ++;
-				if(osc->adsr.state == 4) osc->note = 0;
-			} else {
-				int8_t vel = osc->wvel;
-				if(vel < 127) vel -= 5;
-				if(vel <= 0) osc->note = 0;
-				osc->wvel = vel;
-			}
+			update_adsr(&osc->adsr);
+			update_adsr(&osc->madsr);
+			osc->ticks ++;
+			if(osc->adsr.state == 4) osc->note = 0;
 		}
 		PORTB &= ~2;
 	}
@@ -311,28 +266,15 @@ ISR(TIMER1_OVF_vect)
 		osc = &oscs[i];
 		if(! osc->note) continue;
 
-		if(osc->type == OSC_TYPE_FM) {
+		int16_t m;
 
-			/* FM */
-
-			int16_t m;
-
-			m = sintab[osc->moff >> 8];
-			m = m * osc->madsr.vel / 16;
-			m >>= fm_mod;
-			off = (osc->off >> 8) + m;
-			if(osc->note) c = c + osc->adsr.vel * sintab[off] / (64 * NUM_OSCS); 
-			osc->off += osc->step;
-			osc->moff += osc->mstep;
-
-		} else {
-
-			/* Wave table */
-
-			c = c + osc->wvel * pgm_read_byte(osc->sample + osc->woff / 256) / ( 128 * NUM_OSCS);
-			osc->woff = osc->woff + osc->wstep;
-			if(osc->woff >= osc->loop_end) osc->woff -= osc->loop_rev;
-		}
+		m = sintab[osc->moff >> 8];
+		m = m * osc->madsr.vel / 16;
+		m >>= fm_mod;
+		off = (osc->off >> 8) + m;
+		if(osc->note) c = c + osc->adsr.vel * sintab[off] / (64 * NUM_OSCS); 
+		osc->off += osc->step;
+		osc->moff += osc->mstep;
 	}
 
 	if(bip_t) {

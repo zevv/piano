@@ -93,6 +93,17 @@ void play_one(uint8_t note)
 }
 
 
+static void do_stop(void)
+{
+	if(seq_state == SEQ_STATE_REC) {
+		seq_last = seq_rec;
+		seq_sort();
+	}
+	seq_state = SEQ_STATE_IDLE;
+	seq_metro = 0;
+}
+
+
 /*
  * Handle sequencer control command
  */
@@ -160,23 +171,24 @@ void seq_cmd(enum seq_cmd cmd)
 			break;
 
 		case SEQ_CMD_PLAY:
-			if(seq_state == SEQ_STATE_IDLE) {
+			if(seq_state == SEQ_STATE_PLAY) {
+				do_stop();
+			} else {
 				seq_state = SEQ_STATE_PLAY;
 			}
 			break;
 
 		case SEQ_CMD_REC:
-			seq_rec = seq_last;
-			seq_state = SEQ_STATE_REC;
+			if(seq_state == SEQ_STATE_REC) {
+				do_stop();
+			} else {
+				seq_rec = seq_last;
+				seq_state = SEQ_STATE_REC;
+			}
 			break;
 
 		case SEQ_CMD_STOP:
-			if(seq_state == SEQ_STATE_REC) {
-				seq_last = seq_rec;
-				seq_sort();
-			}
-			seq_state = SEQ_STATE_IDLE;
-			seq_metro = 0;
+			do_stop();
 			break;
 
 		case SEQ_CMD_TEMPO_DOWN:
@@ -187,12 +199,33 @@ void seq_cmd(enum seq_cmd cmd)
 			if(seq_tempo >= 10) seq_tempo -= 10;
 			break;
 
-		case SEQ_CMD_METRONOME:
-			seq_metro = !seq_metro;
+		case SEQ_CMD_METRONOME_3_4:
+			if(!seq_metro) {
+				seq_metro = 1;
+				seq_measures = 3;
+			} else {
+				seq_metro = 0;
+			}
+			break;
+
+		case SEQ_CMD_METRONOME_4_4:
+			if(!seq_metro) {
+				seq_metro = 1;
+				seq_measures = 4;
+			} else {
+				seq_metro = 0;
+			}
 			break;
 		
-		case SEQ_CMD_MEASURES:
-			seq_measures = 7 - seq_measures;
+		case SEQ_CMD_ONEKEY_ON:
+			while(seq_play < seq_last && !(seq_play->note & 0x80)) seq_play ++;
+			note_on(seq_play->note & 0x7f);
+			seq_ticks = seq_play->ticks;
+			if(seq_play < seq_last) seq_play ++;
+			break;
+		
+		case SEQ_CMD_ONEKEY_OFF:
+			all_off();
 			break;
 		
 	}

@@ -15,7 +15,6 @@ static uint8_t master_vol = 0;
 static int8_t oct = 0;
 static uint8_t fm_mul = 4;
 static uint8_t fm_mod = 3;
-static uint8_t instr = 0;
 
 void handle_key(uint8_t key, uint8_t state)
 {
@@ -51,17 +50,19 @@ void handle_key(uint8_t key, uint8_t state)
 			
 			case KEY_OCT_UP:
 				if(oct < 2) oct++;
+				all_off();
 				break;
 
 			case KEY_OCT_DOWN:
 				if(oct > -2) oct--;
+				all_off();
 				break;
 
 			case KEY_RECORD:
 				seq_cmd(SEQ_CMD_REC);
 				break;
 			
-			case KEY_START:
+			case KEY_PLAY:
 				seq_cmd(SEQ_CMD_PLAY);
 				break;
 
@@ -102,17 +103,16 @@ void handle_key(uint8_t key, uint8_t state)
 				seq_cmd(SEQ_CMD_TEMPO_UP);
 				break;
 
-			case KEY_METRONOME:
-				seq_cmd(SEQ_CMD_METRONOME);
+			case KEY_METRONOME_3_4:
+				seq_cmd(SEQ_CMD_METRONOME_3_4);
 				break;
 			
-			case KEY_MEASURES:
-				seq_cmd(SEQ_CMD_MEASURES);
+			case KEY_METRONOME_4_4:
+				seq_cmd(SEQ_CMD_METRONOME_4_4);
 				break;
-
-			case KEY_OSCTYPE:
-				instr = 1-instr;
-				set_instr(instr);
+			
+			case KEY_ONEKEY:
+				seq_cmd(SEQ_CMD_ONEKEY_ON);
 				break;
 
 			case KEY_FM_MUL:
@@ -124,7 +124,17 @@ void handle_key(uint8_t key, uint8_t state)
 				fm_mod = (fm_mod + 1) % 7;
 				break;
 		}
+
+	} else {
+
+		switch(key) {
+			case KEY_ONEKEY:
+				seq_cmd(SEQ_CMD_ONEKEY_OFF);
+				break;
+		}
 	}
+
+
 				
 	osc_set_fm(fm_mul, fm_mod);
 }
