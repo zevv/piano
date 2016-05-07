@@ -11,7 +11,7 @@ Unfortunately I don't have any exact schematics of how things are connected, but
 everything is pretty basic: a keyboard scan matrix is connected to some GPIO, and
 audio output is generated using pulse width modulation on one of the timers.
 
-[![Demo](http://img.youtube.com/vi/Cgub3LqKo9w/0.jpg)](http://www.youtube.com/watch?v=Cgub3LqKo9w)
+[![Demo](/media/video.jpg)](http://www.youtube.com/watch?v=Cgub3LqKo9w)
 ![pss-30](/media/pss-30.jpg)
 ![inside](/media/inside.jpg)
 
