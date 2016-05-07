@@ -11,7 +11,8 @@ Unfortunately I don't have any exact schematics of how things are connected, but
 everything is pretty basic: a keyboard scan matrix is connected to some GPIO, and
 audio output is generated using pulse width modulation on one of the timers.
 
-![hardware(/media/P100233.JPG)
+![pss-30](/media/pss-30.jpg)
+![inside](/media/inside.jpg)
 
 
 ## piano.c
